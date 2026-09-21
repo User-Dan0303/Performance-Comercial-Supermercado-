@@ -32,3 +32,6 @@ El proyecto está diseñado bajo buenas prácticas de ingeniería de datos, estr
     *   `automatizacion_excel.py`: Pipeline automatizado que extrae las vistas SQL directamente del servidor y genera un archivo unificado `.xlsx` estructurado por pestañas utilizando `openpyxl`.
 *   **Fase 3 - Power BI Desktop:** Conexión interactiva a las vistas de PostgreSQL en modo *Import*. Aplicación de modelado avanzado (indexación cronológica de días de la semana) y diseño de interfaz ejecutiva con segmentadores globales y tarjetas KPI dinámicas.
 *   **Fase 4 - Excel (C-Suite Ready):** Consolidación del archivo automatizado en tablas dinámicas estructuradas, manteniendo la nomenclatura técnica del pipeline de datos original como prueba de procedencia e ingeniería.
+
+## Autor
+**Daniel Tor**
