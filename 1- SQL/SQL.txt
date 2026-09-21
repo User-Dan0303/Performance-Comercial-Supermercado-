@@ -1,0 +1,99 @@
+CREATE TABLE supermarket (
+	"ID_factura" Varchar(50),
+	sucursal Varchar(50),
+	ciudad Varchar(50),
+	tipo_de_cliente Varchar(50),
+	"género" Varchar(50),
+	"categoría_de_producto" Varchar(50),
+	precio_unitario Numeric(10,2),
+	cantidad Int,
+	"impuesto(5%)" Numeric(5,2),
+	"venta_total(imp_inc)" Numeric(10,2),
+	"fecha_de_transacción" Date,
+	"hora_de_transacción" Time,
+	"método_de_pago" Varchar(50),
+	costo_de_venta Numeric(10,2),
+	costo_unitario Numeric(10,2)
+		Generated Always As (
+			Case
+            	When cantidad = 0 Then 0
+            	Else costo_de_venta / cantidad
+        	End
+		) Stored,
+	"margen_bruto(%)" Numeric(5,2),
+	beneficio_bruto Numeric(10,2),
+	"calificación" Numeric(3,1)
+); 
+
+
+SET DateStyle = 'ISO, MDY';
+
+COPY public.supermarket(
+    "ID_factura", sucursal, ciudad, tipo_de_cliente, "género", 
+    "categoría_de_producto", precio_unitario, cantidad, "impuesto(5%)", 
+    "venta_total(imp_inc)", "fecha_de_transacción", "hora_de_transacción", 
+    "método_de_pago", costo_de_venta, "margen_bruto(%)", beneficio_bruto, "calificación"
+) 
+FROM 'D:/SuperMarket Analysis.csv' 
+WITH (FORMAT csv, DELIMITER ',', HEADER true, ENCODING 'UTF8');
+
+
+Create view vista_rentabilidad_segmentada as
+Select
+	sucursal,
+	ciudad,
+	"categoría_de_producto",
+	sum(cantidad) as unidades_vendidas,
+	sum(costo_de_venta),
+	sum(beneficio_bruto) as beneficio_bruto_total,
+	sum("venta_total(imp_inc)") as venta_total_acumulada,
+	round((sum(beneficio_bruto) / nullif(sum("venta_total(imp_inc)"), 0) * 100)::numeric, 2) as margen_real_porcentaje
+From supermarket
+Group by sucursal,ciudad,"categoría_de_producto";
+
+
+Create view vista_ticket_promedio as
+Select
+	tipo_de_cliente,
+	"género",
+	count("ID_factura") as total_transacciones,
+	round(avg("venta_total(imp_inc)")::numeric,2) as "ticket_promedio(imp_inc)",
+	round(avg(cantidad)::numeric,2) as articulos_promedio_por_ticket,
+	round(sum(beneficio_bruto)::numeric,2) as ganancia_total_aportada
+From supermarket
+Group by tipo_de_cliente, "género";
+
+
+Create view vista_analisis_temporal_pagos as
+Select
+	EXTRACT(ISODOW FROM "fecha_de_transacción") AS "número_día_semana",
+	to_char("fecha_de_transacción", 'TMDay') as "día_semana",
+	"método_de_pago",
+	count("ID_factura") as cantidad_pagos,
+	round(sum("venta_total(imp_inc)")::numeric,2) as "facturación_total(imp_inc)",
+	round(sum("impuesto(5%)")::numeric,2) as carga_fiscal_total,
+	round(avg("calificación")::numeric,2) as "calificación_promedio"
+From supermarket
+Group by to_char("fecha_de_transacción", 'TMDay'), "método_de_pago",
+Extract(ISODOW FROM "fecha_de_transacción");
+
+	
+Create view vista_ventas_por_franja_horaria as
+Select
+	 Case
+        When "hora_de_transacción" < '12:00:00' Then 'Mañana'
+        When "hora_de_transacción" < '18:00:00' Then 'Tarde'
+        Else 'Noche'
+    End as franja_horaria,
+	"categoría_de_producto",
+	count(distinct "ID_factura") as cantidad_transacciones,
+	sum(cantidad) as unidades_vendidas,
+	round(sum("venta_total(imp_inc)")::numeric,2) as "venta_total(imp_inc)",
+	round(sum(beneficio_bruto)::numeric,2) as ganancia_total_generada
+From supermarket
+Group by 
+	Case
+        When "hora_de_transacción" < '12:00:00' Then 'Mañana'
+        When "hora_de_transacción" < '18:00:00' Then 'Tarde'
+        Else 'Noche'
+    End, "categoría_de_producto";
